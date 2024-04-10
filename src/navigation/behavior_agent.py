@@ -104,10 +104,9 @@ class BehaviorAgent(BasicAgent):
         #     writer = csv.writer(f)
 
         # log
-        self.gpt_log_path = 'C:/Users/gongj/Desktop/log/gpt_log/' + time.strftime('%Y-%m-%d_%H-%M-%S',
-                                                                                  time.localtime()) + '.csv'
-        self.canbus_log_path = 'C:/Users/gongj/Desktop/log/canbus_log/' + time.strftime('%Y-%m-%d_%H-%M-%S',
-                                                                                        time.localtime()) + '.csv'
+        self.gpt_log_path = 'gpt_log' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '.csv'
+        self.canbus_log_path = 'canbus_log' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '.csv'
+        
         # 初始化log
         self.gpt_log_header = ('time_s', 'time_r', 'message', 'response')
         with open(self.gpt_log_path, 'a', newline='') as f:
