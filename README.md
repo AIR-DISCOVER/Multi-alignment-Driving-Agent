@@ -1,4 +1,4 @@
-# Multi-alignment-Drivng-Agent
+# Multi-alignment-Driving-Agent
 
 This repository contains the multi-alignment framework code for paper **Driving Style Alignment for LLM-powered Driver Agent**.
 
