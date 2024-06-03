@@ -10,7 +10,7 @@ traffic signs, and has different possible configurations. """
 
 from flask import Flask, request
 import threading
-from collections import deque  # 用于方便地存储和更新最近5轮的反馈
+from collections import deque  # store the latest 5 feedbacks
 
 app = Flask(__name__)
 json_script = None
@@ -58,11 +58,9 @@ class GPT4AgentInterface:
         pass
 
     def receive_json(self, json_script):
-        # 使用json模块解析JSON脚本
         self.commands = json.loads(json_script)
 
     def get_commands(self):
-        # 返回解析后的命令供CARLA自动驾驶代码使用
         return self.commands
 
 
@@ -93,13 +91,15 @@ class BehaviorAgent(BasicAgent):
 
         openai.api_key = ""
         openai.organization = ""
-        # conservative or risky
+
+        # cautious, risky, or not-aligned
         self.driver_prompt_path = r""
 
-        # # coach(非coach模式请注释下面的代码)
+        # # coach
+        # # To run the mode without coach, please comment out this section of the code up to line 103.
         # self.read_guideline = True
-        # self.coach_prompt_path = r"C:\Users\gongj\Desktop\prompt\Driving Style\coach_aggressive.txt"
-        # self.guideline_path = 'C:/Users/gongj/Desktop/log/guideline/feedback_aggressive.txt'
+        # self.coach_prompt_path = r""
+        # self.guideline_path = ''
         # with open(self.guideline_path, 'a', newline='') as f:
         #     writer = csv.writer(f)
 
@@ -117,8 +117,6 @@ class BehaviorAgent(BasicAgent):
             writer = csv.writer(f)
             writer.writerow(self.canbus_log_header)
 
-
-        # self.guideline_prompt_path = r"C:\Users\gongj\Desktop\Guideline_prompt.txt"
 
         self.waypoint_number = 0
         self.last_left_wpt = None
@@ -139,7 +137,7 @@ class BehaviorAgent(BasicAgent):
         self.command_queue = queue.Queue()
         self.response_queue = queue.Queue()
         # self.suggestion_queue = queue.Queue()
-        self.guideline = None  # 指导方针,持续迭代
+        self.guideline = None 
         self.gpt3_thread = threading.Thread(target=self.get_command_from_gpt3)
         self.log_thread = threading.Thread(target=self.log_canbus)
         # self.gpt3_thread.start()
@@ -159,9 +157,9 @@ class BehaviorAgent(BasicAgent):
         self.Car_Behind_Vehicle_Threshold = None
         self.Car_Obstacle_Detected = None
 
-        self.reflection_counter = 0  # 用于跟踪已经完成了多少轮对话
-        self.past_5_feedbacks = deque(maxlen=5)  # 用于存储最近5轮对话中GPT的反馈
-        self.car_initial = True  # 用于判断车辆是否为初始状态
+        self.reflection_counter = 0  # dialog rounds
+        self.past_5_feedbacks = deque(maxlen=5)  # latest 5 feedback
+        self.car_initial = True  #
 
         self.driver_prompt = None
         # self.guideline_prompt = None
@@ -173,7 +171,8 @@ class BehaviorAgent(BasicAgent):
              }
         ]
 
-        # # coach(非coach模式请注释下面的代码)
+        # # coach
+        # # To run the mode without coach, please comment out this section of the code up to line 184.
         # self.coach_prompt = None
         # with open( self.coach_prompt_path, 'r', encoding='utf-8') as f:
         #     self.coach_prompt = f.read()
@@ -183,9 +182,6 @@ class BehaviorAgent(BasicAgent):
         #      "content": self.coach_prompt
         #      }
         # ]
-
-        # with open( self.guideline_prompt_path, 'r', encoding='utf-8') as f:
-        #     self.guideline_prompt = f.read()
 
 
         # Parameters for agent behavior
@@ -234,7 +230,7 @@ class BehaviorAgent(BasicAgent):
         actor_list = self._world.get_actors()
         lights_list = actor_list.filter("*traffic_light*")
         affected, traffic_light = self._affected_by_traffic_light(lights_list, 10)
-        # 缩短红灯时间
+        # shorten time for red lights
         if affected:
             if traffic_light.get_green_time() > 5.0:
                 traffic_light.set_green_time(5.0)
@@ -303,7 +299,6 @@ class BehaviorAgent(BasicAgent):
 
         return walker_state, walker, distance
 
-    # 判断能不能向右变道
     def is_right_lane_change_allowed(self):
         ego_vehicle_loc = self._vehicle.get_location()
         waypoint = self._map.get_waypoint(ego_vehicle_loc)
@@ -323,7 +318,6 @@ class BehaviorAgent(BasicAgent):
                 and (right_wpt.lane_type == carla.LaneType.Driving)
         )
 
-    # 判断能不能向左变道
     def is_left_lane_change_allowed(self):
 
         ego_vehicle_loc = self._vehicle.get_location()
@@ -352,7 +346,8 @@ class BehaviorAgent(BasicAgent):
         Generate a command from OpenAI GPT-4 model in a specific format.
         """
 
-        # # coach 读guidelines
+        # # coach
+        # # To run the mode without coach, please comment out this section of the code up to line 354.
         # if self.read_guideline:
         #     self.read_guideline = False
         #     with open(self.guideline_path, 'r') as f:
@@ -469,6 +464,7 @@ class BehaviorAgent(BasicAgent):
                 # self.car_initial = False
 
                 # coach
+                # To run the mode without coach, please comment out this line.
                 # guidelines = self.guideline
 
                 print("\nCar Status:\n")
@@ -494,6 +490,8 @@ class BehaviorAgent(BasicAgent):
                 print("---------------------------------------------\n")
                 print(f"PREVIOUS DRIVING BEHAVIORS: {json.dumps(command)}")
 
+                # coach
+                # To run the mode without coach, please comment out this section up to line 496.
                 # print("---------------------------------------------\n")
                 # print("GUIDELINES:" + guidelines)
 
@@ -518,7 +516,7 @@ class BehaviorAgent(BasicAgent):
                             try:
                                 self.command_dict = json.loads(cleaned)
                                 # print("Cleaned JSON data:", cleaned)
-                                # 记录上一条指令，用于maintain speed保持速度
+                                # maintain speed
                                 if self.command_dict is not None:
                                     self.last_action_buffer = self.command_dict["Action"]
                                 if self.command_dict[
@@ -541,12 +539,13 @@ class BehaviorAgent(BasicAgent):
                                 print("\nThis is waypoint number:")
                                 print(self.waypoint_number)
 
-                                # # coach(非coach模式请注释以下行)
+                                # # coach
+                                # # To run the mode without coach, please comment out this section of the code up to line 573.
                                 # reflection_prompt = {
                                 #     "role": "user",
                                 #     "content": f"PREVIOUS DRIVING BEHAVIORS: {list(self.command_queue.queue)}, EXISTING GUIDELINES: {self.guideline}."
                                 # }
-                                # # 使用新的反思prompt生成一个新的GPT输出
+                                # # generate feedback
                                 # send_time = datetime.now()
                                 # reflection_response = openai.ChatCompletion.create(
                                 #     model="gpt-4",
@@ -631,7 +630,6 @@ class BehaviorAgent(BasicAgent):
 
         # Get command from GPT-4
         if not self.gpt3_thread.is_alive():
-            # print("开启线程")
             self.start_gpt3_thread()
 
         # log
@@ -656,7 +654,7 @@ class BehaviorAgent(BasicAgent):
     ####################ACTION LIBRARY####################
     ######################################################
 
-    # 刹车
+    # stop
     def stop(self):
         """
         Overwrites the throttle a brake values of a control to perform an stop.
@@ -670,7 +668,7 @@ class BehaviorAgent(BasicAgent):
         control.hand_brake = False
         return control
 
-    # 正常跟着导航行驶
+    # follow the navigation
     def normal_behavior(self, debug=False):
         target_speed = min([
             self._behavior.max_speed,
@@ -679,7 +677,7 @@ class BehaviorAgent(BasicAgent):
         control = self._local_planner.run_step(debug=debug)
         return control
 
-    # 加速
+    # speed up
     def speed_up(self, increment=0.5, debug=False):
         current_speed = self._speed
         # target_speed = self._speed_limit * 1.1
@@ -693,7 +691,7 @@ class BehaviorAgent(BasicAgent):
         control = self._local_planner.run_step(debug=debug)
         return control
 
-    # 减速
+    # speed down
     def speed_down(self, decrement=1.5, debug=False):
         current_speed = self._speed
 
@@ -702,7 +700,7 @@ class BehaviorAgent(BasicAgent):
         control = self._local_planner.run_step(debug=debug)
         return control
 
-    # 保持现在的速度
+    # maintain speed
     def maintain_speed(self, debug=False):
         # self._local_planner.set_speed(current_speed)
         current_speed = self.last_speed
@@ -710,7 +708,7 @@ class BehaviorAgent(BasicAgent):
         control = self._local_planner.run_step(debug=debug)
         return control
 
-    # 换到左道
+    # change lane
     def lane_changing_left(self, debug=False):
         # ego_vehicle_loc = self._vehicle.get_location()
         waypoint = self._incoming_waypoint
@@ -729,7 +727,7 @@ class BehaviorAgent(BasicAgent):
         control = self._local_planner.run_step(debug=debug)
         return control
 
-    # 换到右道
+    # change lane
     def lane_changing_right(self, debug=False):
         # ego_vehicle_loc = self._vehicle.get_location()
         waypoint = self._incoming_waypoint

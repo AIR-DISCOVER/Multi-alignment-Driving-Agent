@@ -66,17 +66,22 @@ from agents.navigation.constant_velocity_agent import ConstantVelocityAgent  # p
 client = carla.Client('localhost', 2000)
 client.set_timeout(10.0)
 world = client.get_world()
-# 以距离为1的间距创建waypoints
+
+# create waypoints
 waypoints = world.get_map().generate_waypoints(distance=1.0)
-# world = cient.load_world('/Game/Carla/Maps/Town10HD_Opt') # 这里的'Town03'是你想加载的地图的名称
+
+# world = cient.load_world('/Game/Carla/Maps/Town10HD_Opt') # load a map
 settings = world.get_settings()
+
+# a smaller delta is required if the coach agent is used
 # settings.fixed_delta_seconds = 0.003
 settings.fixed_delta_seconds = 0.0014
 world.apply_settings(settings)
-collision_path = 'C:/Users/gongj/Desktop/log/collision/' + time.strftime('%Y-%m-%d_%H-%M-%S',
-                                                                          time.localtime()) + '.txt'
-times_path = 'C:/Users/gongj/Desktop/log/times/' + time.strftime('%Y-%m-%d_%H-%M-%S',
-                                                                          time.localtime()) + '.txt'
+
+# the log file of collisions and times
+collision_path = '' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '.txt'
+times_path = '' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '.txt'
+
 world_tick = 0
 run_times = 0
 waypoints_number = 0
@@ -169,7 +174,7 @@ class World(object):
         cam_pos_id = self.camera_manager.transform_index if self.camera_manager is not None else 0
 
 
-        # 固定生成一种车辆.
+        # use a fixed type of car
         vehicle_bp = world.get_blueprint_library().find('vehicle.audi.tt')
         vehicle_bp.set_attribute('role_name', 'hero')
 
@@ -205,9 +210,7 @@ class World(object):
         #                                     color=carla.Color(r=0, g=255, b=255),
         #                                     persistent_lines=True)
         #
-        #     # life_time 为画出的辅助标志存活时间
         #     # draw_waypoints(waypoints, road_id=4)
-        #     # 固定生成点
         #     filtered_waypoint = []
         #     for waypoint in waypoints:
         #         if (waypoint.road_id == 5):
@@ -455,7 +458,7 @@ class HUD(object):
         self._notifications.render(display)
         self.help.render(display)
 
-        # # 渲染生成点标号
+        # # render the mark points
         # if spawn_points:
         #     for index, spawn_point in enumerate(spawn_points):
         #         position = spawn_point.location
@@ -571,41 +574,31 @@ class CollisionSensor(object):
         actor_type = get_actor_display_name(event.other_actor)
         self.hud.notification('Collision with %r' % actor_type)
 
-        # 判断是否需要写入
-        # 定义一个函数来读取文件的最后一行
+        # write collision information into the log file
         def read_last_line(file_name):
-            # 检查文件是否存在
-            if not os.path.exists(file_name):
-                # 如果文件不存在，创建一个新的空文件
                 open(file_name, 'w').close()
                 return None
             else:
-                # 如果文件存在，读取最后一行
                 with open(file_name, 'r') as file:
                     lines = file.readlines()
                     return lines[-1] if lines else None
-
-        # 待写入的记录信息
-        run_times_current = str(run_times)  # 当前run_time_number
-        waypoints_number_current = str(waypoints_number)  # 当前waypoints
+        run_times_current = str(run_times)  # run_time_number
+        waypoints_number_current = str(waypoints_number)  # waypoints
         collision_record_current = "collision time ticks: " + str(
             world_tick) + " run_time_number: " + run_times_current + " waypoints: " + waypoints_number_current + " last_action: " + str(
             last_action) + "\n"
-
-        # 读取最后一行并解析
         last_line = read_last_line(collision_path)
-        should_write = True  # 默认为需要写入
+        should_write = True
 
         if last_line:
             parts = last_line.split()
             run_times_last = parts[parts.index("run_time_number:") + 1]
             waypoints_last = parts[parts.index("waypoints:") + 1]
 
-            # 比较run_time_number和waypoints是否相同
+            # if the run time and waypoints is the same with the last line, skip writing
             if run_times_last == run_times_current and waypoints_last == waypoints_number_current:
-                should_write = False  # 如果相同，设置为不写入
+                should_write = False
 
-        # 如果需要写入，执行写入操作
         if should_write:
             with open(collision_path, 'a') as file:
                 file.write(collision_record_current)
@@ -856,7 +849,7 @@ def game_loop(args):
             agent = BehaviorAgent(world.player, behavior=args.behavior)
 
         # Set the agent destination
-        # 固定目标点
+        # fixed destination
         # filtered_waypoint = []
         # for waypoint in waypoints:
         #     if (waypoint.road_id == 11):
@@ -902,15 +895,15 @@ def game_loop(args):
 
 
         # Set the agent destination
-        # 获取车辆预设位置点
+        # get predefined point
         spawn_points = world.map.get_spawn_points()
-        # 随机选择一个作为终点
+        # randomly choose one as the destination
         destination = random.choice(spawn_points).location
         agent.set_destination(destination)
 
         clock = pygame.time.Clock()
 
-        # 开始模拟
+        # simulation starts
         while True:
             start = time.time()
             clock.tick()
